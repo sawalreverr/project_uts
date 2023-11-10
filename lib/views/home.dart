@@ -2,6 +2,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../helper/analyticsHelper.dart';
 import '../views/auth/login.dart';
 import '../helper/formatHelper.dart';
 import '../helper/httpHelper.dart';
@@ -18,6 +19,7 @@ class _MyHomeState extends State<MyHome> {
   late HttpHelper helper;
   late List dataProducts;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  MyAnalyticsHelper analyticsHelper = MyAnalyticsHelper();
 
   @override
   void initState() {
@@ -164,6 +166,7 @@ class _MyHomeState extends State<MyHome> {
             leading: FaIcon(FontAwesomeIcons.rightFromBracket),
             title: Text("Log Out"),
             onTap: () {
+              analyticsHelper.logoutLog(_email);
               _auth.signOut();
               Navigator.pushReplacement(
                 context,
