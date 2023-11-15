@@ -2,6 +2,10 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:provider/provider.dart';
+import '../models/product.dart';
+import '../provider/provider.dart';
+import 'cart/carts_product.dart';
 import '../helper/analyticsHelper.dart';
 import '../views/auth/login.dart';
 import '../helper/formatHelper.dart';
@@ -17,7 +21,7 @@ class MyHome extends StatefulWidget {
 
 class _MyHomeState extends State<MyHome> {
   late HttpHelper helper;
-  late List dataProducts;
+  List<Product> dataProducts = [];
   final FirebaseAuth _auth = FirebaseAuth.instance;
   MyAnalyticsHelper analyticsHelper = MyAnalyticsHelper();
 
@@ -26,8 +30,6 @@ class _MyHomeState extends State<MyHome> {
     super.initState();
     helper = HttpHelper();
     getProducts();
-    dataProducts = [];
-
     FirebaseAnalytics.instance.setUserProperty(name: "MyHome", value: "Home");
   }
 
@@ -38,6 +40,10 @@ class _MyHomeState extends State<MyHome> {
 
   @override
   Widget build(BuildContext context) {
+    var cartProvider = Provider.of<CartProviderV2>(context);
+    String? _email = _auth.currentUser!.email;
+    cartProvider.setUserEmail(_email!);
+
     return Scaffold(
         appBar: AppBar(
           title: Text("DidaPedia"),
@@ -45,6 +51,19 @@ class _MyHomeState extends State<MyHome> {
           elevation: 2,
           backgroundColor: Color(0xff186F65),
           foregroundColor: Colors.white,
+          actions: [
+            Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => CartsDetails()));
+                  },
+                  icon: Icon(Icons.shopping_cart),
+                ))
+          ],
         ),
         body: productList(),
         drawer: drawerBurger(context));
@@ -60,17 +79,17 @@ class _MyHomeState extends State<MyHome> {
             elevation: 5,
             child: ListTile(
               leading: Image.network(
-                dataProducts[index]['image'],
+                dataProducts[index].image,
                 width: 50,
                 height: 50,
               ),
               title: Text(
-                dataProducts[index]['title'],
+                dataProducts[index].title,
                 overflow: TextOverflow.ellipsis,
                 maxLines: 2,
               ),
               subtitle: Text(CurrencyFormat.convertToIdr(
-                  dataProducts[index]['price'] * 15000, 0)),
+                  dataProducts[index].price * 15000, 0)),
               trailing: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -79,7 +98,7 @@ class _MyHomeState extends State<MyHome> {
                     color: Color(0xff186F65),
                   ),
                   Text(
-                    dataProducts[index]['rating']['rate'].toString(),
+                    dataProducts[index].rating.rate.toString(),
                     style: TextStyle(fontSize: 12),
                   )
                 ],
@@ -89,17 +108,8 @@ class _MyHomeState extends State<MyHome> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => DetailProduct(
-                      title: dataProducts[index]['title'],
-                      imageURL: dataProducts[index]['image'],
-                      price: dataProducts[index]['price'] is int
-                          ? dataProducts[index]['price'].toDouble()
-                          : dataProducts[index]['price'],
-                      rating: dataProducts[index]['rating']['rate'] is int
-                          ? dataProducts[index]['rating']['rate'].toDouble()
-                          : dataProducts[index]['rating']['rate'],
-                      quantity: dataProducts[index]['rating']['count'],
-                      description: dataProducts[index]['description'],
-                      category: dataProducts[index]['category'],
+                      product: dataProducts[index],
+                      email: _auth.currentUser!.email!,
                     ),
                   ),
                 );
@@ -181,15 +191,10 @@ class _MyHomeState extends State<MyHome> {
     );
   }
 
-  getProducts() async {
-    return await helper.getProducts().then(
-      (value) {
-        if (mounted) {
-          setState(() {
-            dataProducts = value!.toList();
-          });
-        }
-      },
-    );
+  Future getProducts() async {
+    dataProducts = await helper.getProducts();
+    setState(() {
+      dataProducts = dataProducts;
+    });
   }
 }
